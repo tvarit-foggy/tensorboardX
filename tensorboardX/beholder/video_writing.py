@@ -36,7 +36,7 @@ class VideoWriter(object):
         # Filter to the available outputs
         self.outputs = [out for out in outputs if out.available()]
         if not self.outputs:
-            raise IOError('No available video outputs')
+            raise IOError("No available video outputs")
         self.output_index = 0
         self.output = None
         self.frame_shape = None
@@ -51,7 +51,7 @@ class VideoWriter(object):
                 self.output.close()
             self.output = None
             self.frame_shape = np_array.shape
-            print('Starting video with frame shape: %s', self.frame_shape)
+            print("Starting video with frame shape: %s", self.frame_shape)
         # Write the frame, advancing across output types as necessary.
         original_output_index = self.output_index
         for self.output_index in range(original_output_index, len(self.outputs)):
@@ -59,18 +59,20 @@ class VideoWriter(object):
                 if not self.output:
                     new_output = self.outputs[self.output_index]
                     if self.output_index > original_output_index:
-                        print('Falling back to video output %s',
-                              new_output.name())
+                        print("Falling back to video output %s", new_output.name())
                     self.output = new_output(self.directory, self.frame_shape)
                 self.output.emit_frame(np_array)
                 return
             except (IOError, OSError) as e:
-                print('Video output type %s not available: %s',
-                      self.current_output().name(), str(e))
+                print(
+                    "Video output type %s not available: %s",
+                    self.current_output().name(),
+                    str(e),
+                )
                 if self.output:
                     self.output.close()
                 self.output = None
-        raise IOError('Exhausted available video outputs')
+        raise IOError("Exhausted available video outputs")
 
     def finish(self):
         if self.output:
@@ -113,17 +115,18 @@ class PNGVideoOutput(VideoOutput):
 
     def __init__(self, directory, frame_shape):
         del frame_shape  # unused
-        self.directory = directory + '/video-frames-{}'.format(time.time())
+        self.directory = directory + "/video-frames-{}".format(time.time())
         self.frame_num = 0
         os.makedirs(self.directory)
 
     def emit_frame(self, np_array):
-        filename = self.directory + '/{:05}.png'.format(self.frame_num)
+        filename = self.directory + "/{:05}.png".format(self.frame_num)
         self._write_image(np_array.astype(np.uint8), filename)
         self.frame_num += 1
 
     def _write_image(self, im, filename):
         from PIL import Image
+
         Image.fromarray(im).save(filename)
 
     def close(self):
@@ -137,54 +140,63 @@ class FFmpegVideoOutput(VideoOutput):
     def available(cls):
         # Silently check if ffmpeg is available.
         try:
-            with open(os.devnull, 'wb') as devnull:
+            with open(os.devnull, "wb") as devnull:
                 subprocess.check_call(
-                    ['ffmpeg', '-version'], stdout=devnull, stderr=devnull)
+                    ["ffmpeg", "-version"], stdout=devnull, stderr=devnull
+                )
             return True
         except (OSError, subprocess.CalledProcessError):
             return False
 
     def __init__(self, directory, frame_shape):
-        self.filename = directory + '/video-{}.webm'.format(time.time())
+        self.filename = directory + "/video-{}.webm".format(time.time())
         if len(frame_shape) != 3:
             raise ValueError(
-                'Expected rank-3 array for frame, got %s' % str(frame_shape))
+                "Expected rank-3 array for frame, got %s" % str(frame_shape)
+            )
         # Set input pixel format based on channel count.
         if frame_shape[2] == 1:
-            pix_fmt = 'gray'
+            pix_fmt = "gray"
         elif frame_shape[2] == 3:
-            pix_fmt = 'rgb24'
+            pix_fmt = "rgb24"
         else:
-            raise ValueError('Unsupported channel count %d' % frame_shape[2])
+            raise ValueError("Unsupported channel count %d" % frame_shape[2])
 
         command = [
-            'ffmpeg',
-            '-y',  # Overwite output
+            "ffmpeg",
+            "-y",  # Overwite output
             # Input options - raw video file format and codec.
-            '-f', 'rawvideo',
-            '-vcodec', 'rawvideo',
+            "-f",
+            "rawvideo",
+            "-vcodec",
+            "rawvideo",
             # Width x height.
-            '-s', '%dx%d' % (frame_shape[1], frame_shape[0]),
-            '-pix_fmt', pix_fmt,
-            '-r', '15',  # Frame rate: arbitrarily use 15 frames per second.
-            '-i', '-',  # Use stdin.
-            '-an',  # No audio.
+            "-s",
+            "%dx%d" % (frame_shape[1], frame_shape[0]),
+            "-pix_fmt",
+            pix_fmt,
+            "-r",
+            "15",  # Frame rate: arbitrarily use 15 frames per second.
+            "-i",
+            "-",  # Use stdin.
+            "-an",  # No audio.
             # Output options - use lossless VP9 codec inside .webm.
-            '-vcodec', 'libvpx-vp9',
-            '-lossless', '1',
+            "-vcodec",
+            "libvpx-vp9",
+            "-lossless",
+            "1",
             # Using YUV is most compatible, though conversion from RGB skews colors.
-            '-pix_fmt', 'yuv420p',
-            self.filename
+            "-pix_fmt",
+            "yuv420p",
+            self.filename,
         ]
         PIPE = subprocess.PIPE
-        self.ffmpeg = subprocess.Popen(
-            command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        self.ffmpeg = subprocess.Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
 
     def _handle_error(self):
         _, stderr = self.ffmpeg.communicate()
-        bar = '=' * 40
-        print('Error writing to FFmpeg:\n{}\n{}\n{}',
-              bar, stderr, bar)
+        bar = "=" * 40
+        print("Error writing to FFmpeg:\n{}\n{}\n{}", bar, stderr, bar)
 
     def emit_frame(self, np_array):
         try:
@@ -192,7 +204,7 @@ class FFmpegVideoOutput(VideoOutput):
             self.ffmpeg.stdin.flush()
         except IOError:
             self._handle_error()
-            raise IOError('Failure invoking FFmpeg')
+            raise IOError("Failure invoking FFmpeg")
 
     def close(self):
         if self.ffmpeg.poll() is None:

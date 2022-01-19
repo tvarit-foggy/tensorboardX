@@ -6,4 +6,4 @@ from tensorboardX import SummaryWriter
 class ONNXGraphTest(unittest.TestCase):
     def test_onnx_graph(self):
         with SummaryWriter() as w:
-            w.add_onnx_graph('tests/mnist-8.onnx')
+            w.add_onnx_graph("tests/mnist-8.onnx")

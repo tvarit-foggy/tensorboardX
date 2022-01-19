@@ -1,4 +1,3 @@
-
 """
 https://archive.ics.uci.edu/ml/datasets/Heart+Disease
 1. #3 (age)
@@ -26,15 +25,25 @@ Here I only choose feature 1~8 for example.
 with open("processed.cleveland.data") as f:
     lines = f.readlines()
 
-columns = ["age", "sex", "cp", "trestbps", "chol", "fbs", "restecg", "thalach", "target"]
+columns = [
+    "age",
+    "sex",
+    "cp",
+    "trestbps",
+    "chol",
+    "fbs",
+    "restecg",
+    "thalach",
+    "target",
+]
 features_targets = []
 targets = []
 for line in lines:
-    x = line.strip().split(',')
+    x = line.strip().split(",")
     y = x[-1]
-    if '?' in x[:8]:  # skip missing data
+    if "?" in x[:8]:  # skip missing data
         continue
-    ft = [float(i) for i in x[:8]+[y]]
+    ft = [float(i) for i in x[:8] + [y]]
     # print(ft)
     features_targets.append(ft)
 
@@ -47,11 +56,11 @@ for line in lines:
   in a list of feature values for a given feature.
 """
 
-with open("test.csv", 'w') as f:
-    f.write(','.join(columns) + '\n')
+with open("test.csv", "w") as f:
+    f.write(",".join(columns) + "\n")
     for feature in features_targets:
         feature = [str(i) for i in feature]
-        f.write(','.join(feature) + '\n')
+        f.write(",".join(feature) + "\n")
 
 # launch tensorboard and fill [git/]tensorboardX/examples/test.csv in the WIT page and see the data distribution.
 
@@ -73,7 +82,8 @@ def to_examples(features_targets, columns=None):
         examples.append(example)
     return examples
 
-writer = tf.io.TFRecordWriter('test.tfrecord')
+
+writer = tf.io.TFRecordWriter("test.tfrecord")
 for example in to_examples(features_targets, columns):
     writer.write(example.SerializeToString())
 writer.close()

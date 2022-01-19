@@ -30,38 +30,36 @@ class M(nn.Module):
         i = F.log_softmax(i, dim=1)
         return i
 
+
 # get some random data around value
 
 
 def get_data(value, shape):
     data = torch.ones(shape) * value
     # add some noise
-    data += torch.randn(shape)**2
+    data += torch.randn(shape) ** 2
     return data
 
 
 # dataset
 # cat some data with different values
-data = torch.cat(
-    (get_data(
-        0, (100, 1, 14, 14)), get_data(
-            0.5, (100, 1, 14, 14))), 0)
+data = torch.cat((get_data(0, (100, 1, 14, 14)), get_data(0.5, (100, 1, 14, 14))), 0)
 # labels
 labels = torch.cat((torch.zeros(100), torch.ones(100)), 0)
 # generator
 gen = DataLoader(TensorDataset(data, labels), batch_size=25, shuffle=True)
 # network
 m = M()
-#loss and optim
+# loss and optim
 loss = nn.NLLLoss()
 optimizer = torch.optim.Adam(params=m.parameters())
 # settings for train and log
 num_epochs = 20
 embedding_log = 5
-writer = SummaryWriter(comment='mnist_embedding_training')
+writer = SummaryWriter(comment="mnist_embedding_training")
 
-#writer = SummaryWriter("gs://your-bucket/embedding-test")
-#writer = SummaryWriter("s3://your-bucket/embedding-test")
+# writer = SummaryWriter("gs://your-bucket/embedding-test")
+# writer = SummaryWriter("s3://your-bucket/embedding-test")
 
 # TRAIN
 for epoch in range(num_epochs):
@@ -80,7 +78,7 @@ for epoch in range(num_epochs):
         loss_value.backward()
         optimizer.step()
         # LOGGING
-        writer.add_scalar('loss', loss_value.data.item(), n_iter)
+        writer.add_scalar("loss", loss_value.data.item(), n_iter)
 
         if j % embedding_log == 0:
             print("loss_value:{}".format(loss_value.data.item()))
@@ -90,7 +88,8 @@ for epoch in range(num_epochs):
                 out,
                 metadata=label_batch.data,
                 label_img=data_batch.data,
-                global_step=n_iter)
+                global_step=n_iter,
+            )
 
 writer.close()
 

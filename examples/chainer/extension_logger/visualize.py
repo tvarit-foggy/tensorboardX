@@ -17,8 +17,8 @@ def out_generated_image(gen, dis, rows, cols, seed, dst, writer):
         n_images = rows * cols
         xp = gen.xp
         z = Variable(xp.asarray(gen.make_hidden(n_images)))
-        with chainer.using_config('train', False):
+        with chainer.using_config("train", False):
             x = gen(z)
-        writer.add_image('img', x, trainer.updater.iteration)
+        writer.add_image("img", x, trainer.updater.iteration)
 
     return make_image

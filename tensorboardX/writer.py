@@ -25,21 +25,32 @@ from .proto import summary_pb2
 from .proto.event_pb2 import SessionLog, Event
 from .utils import figure_to_image
 from .summary import (
-    scalar, histogram, histogram_raw, image, audio, text,
-    pr_curve, pr_curve_raw, video, custom_scalars, image_boxes, mesh, hparams
+    scalar,
+    histogram,
+    histogram_raw,
+    image,
+    audio,
+    text,
+    pr_curve,
+    pr_curve_raw,
+    video,
+    custom_scalars,
+    image_boxes,
+    mesh,
+    hparams,
 )
 
 numpy_compatible = numpy.ndarray
 try:
     import torch
+
     numpy_compatible = torch.Tensor
 except ImportError:
     pass
 
 
 class DummyFileWriter(object):
-    """A fake file writer that writes nothing to the disk.
-    """
+    """A fake file writer that writes nothing to the disk."""
 
     def __init__(self, logdir):
         self._logdir = logdir
@@ -80,7 +91,7 @@ class FileWriter(object):
     training.
     """
 
-    def __init__(self, logdir, max_queue=10, flush_secs=120, filename_suffix=''):
+    def __init__(self, logdir, max_queue=10, flush_secs=120, filename_suffix=""):
         """Creates a `FileWriter` and an event file.
         On construction the writer creates a new event file in `logdir`.
         The other arguments to the constructor control the asynchronous writes to
@@ -103,7 +114,8 @@ class FileWriter(object):
         # actually the ones passing in a PosixPath
         logdir = str(logdir)
         self.event_writer = EventFileWriter(
-            logdir, max_queue, flush_secs, filename_suffix)
+            logdir, max_queue, flush_secs, filename_suffix
+        )
 
         def cleanup():
             self.event_writer.close()
@@ -159,7 +171,8 @@ class FileWriter(object):
         self.add_event(event, None, walltime)
 
         trm = event_pb2.TaggedRunMetadata(
-            tag='profiler', run_metadata=stepstats.SerializeToString())
+            tag="profiler", run_metadata=stepstats.SerializeToString()
+        )
         event = event_pb2.Event(tagged_run_metadata=trm)
         self.add_event(event, None, walltime)
 
@@ -219,17 +232,20 @@ class SummaryWriter(object):
     """
 
     def __init__(
-            self,
-            logdir: Optional[str] = None,
-            comment: Optional[str] = "",
-            purge_step: Optional[int] = None,
-            max_queue: Optional[int] = 10,
-            flush_secs: Optional[int] = 120,
-            filename_suffix: Optional[str] = '',
-            write_to_disk: Optional[bool] = True,
-            log_dir: Optional[str] = None,
-            comet_config: Optional[dict] = {"disabled": True},
-            **kwargs):
+        self,
+        logdir: Optional[str] = None,
+        comment: Optional[str] = "",
+        purge_step: Optional[int] = None,
+        max_queue: Optional[int] = 10,
+        flush_secs: Optional[int] = 120,
+        filename_suffix: Optional[str] = "",
+        write_to_disk: Optional[bool] = True,
+        log_dir: Optional[str] = None,
+        comet_config: Optional[dict] = {"disabled": True},
+        username: Optional[str] = None,
+        model_name: Optional[str] = None,
+        **kwargs
+    ):
         """Creates a `SummaryWriter` that will write out events and summaries
         to the event file.
 
@@ -282,9 +298,21 @@ class SummaryWriter(object):
         if not logdir:
             import socket
             from datetime import datetime
-            current_time = datetime.now().strftime('%b%d_%H-%M-%S')
+
+            current_time = datetime.now().strftime("%b%d_%H-%M-%S")
             logdir = os.path.join(
-                'runs', current_time + '_' + socket.gethostname() + comment)
+                "runs", current_time + "_" + socket.gethostname() + comment
+            )
+
+        if not username:
+            username = "Unknown User"
+
+        if not model_name:
+            model_name = "Unknown Model"
+
+        exp_dir = logdir
+        logdir = "Runs/Others/" + username + "/" + logdir + "/" + model_name
+
         self.logdir = logdir
         self.purge_step = purge_step
         self._max_queue = max_queue
@@ -294,6 +322,9 @@ class SummaryWriter(object):
         self._comet_config = comet_config
         self._comet_logger = None
         self.kwargs = kwargs
+        self.username = username
+        self.exp_dir = exp_dir
+        self.model_name = model_name
 
         # Initialize the file writers, but they can be cleared out on close
         # and recreated later as needed.
@@ -301,10 +332,10 @@ class SummaryWriter(object):
         self._get_file_writer()
 
         # Create default bins for histograms, see generate_testdata.py in tensorflow/tensorboard
-        v = 1E-12
+        v = 1e-12
         buckets = []
         neg_buckets = []
-        while v < 1E20:
+        while v < 1e20:
             buckets.append(v)
             neg_buckets.append(-v)
             v *= 1.1
@@ -312,16 +343,17 @@ class SummaryWriter(object):
 
         self.scalar_dict = {}
 
-    def __append_to_scalar_dict(self, tag, scalar_value, global_step,
-                                timestamp):
+    def __append_to_scalar_dict(self, tag, scalar_value, global_step, timestamp):
         """This adds an entry to the self.scalar_dict datastructure with format
         {writer_id : [[timestamp, step, value], ...], ...}.
         """
         from .x2num import make_np
+
         if tag not in self.scalar_dict.keys():
             self.scalar_dict[tag] = []
         self.scalar_dict[tag].append(
-            [timestamp, global_step, float(make_np(scalar_value))])
+            [timestamp, global_step, float(make_np(scalar_value))]
+        )
 
     def _check_caffe2_blob(self, item):
         """
@@ -346,16 +378,23 @@ class SummaryWriter(object):
             return self.file_writer
 
         if self.all_writers is None or self.file_writer is None:
-            self.file_writer = FileWriter(logdir=self.logdir,
-                                          max_queue=self._max_queue,
-                                          flush_secs=self._flush_secs,
-                                          filename_suffix=self._filename_suffix,
-                                          **self.kwargs)
+            self.file_writer = FileWriter(
+                logdir=self.logdir,
+                max_queue=self._max_queue,
+                flush_secs=self._flush_secs,
+                filename_suffix=self._filename_suffix,
+                **self.kwargs
+            )
             if self.purge_step is not None:
                 self.file_writer.add_event(
-                    Event(step=self.purge_step, file_version='brain.Event:2'))
+                    Event(step=self.purge_step, file_version="brain.Event:2")
+                )
                 self.file_writer.add_event(
-                    Event(step=self.purge_step, session_log=SessionLog(status=SessionLog.START)))
+                    Event(
+                        step=self.purge_step,
+                        session_log=SessionLog(status=SessionLog.START),
+                    )
+                )
             self.all_writers = {self.file_writer.get_logdir(): self.file_writer}
         return self.file_writer
 
@@ -366,11 +405,12 @@ class SummaryWriter(object):
         return self._comet_logger
 
     def add_hparams(
-            self,
-            hparam_dict: Dict[str, Union[bool, str, float, int]],
-            metric_dict: Dict[str, float],
-            name: Optional[str] = None,
-            global_step: Optional[int] = None):
+        self,
+        hparam_dict: Dict[str, Union[bool, str, float, int]],
+        metric_dict: Dict[str, float],
+        name: Optional[str] = None,
+        global_step: Optional[int] = None,
+    ):
         """Add a set of hyperparameters to be compared in tensorboard.
 
         Args:
@@ -399,28 +439,26 @@ class SummaryWriter(object):
            :scale: 50 %
         """
         if type(hparam_dict) is not dict or type(metric_dict) is not dict:
-            raise TypeError('hparam_dict and metric_dict should be dictionary.')
+            raise TypeError("hparam_dict and metric_dict should be dictionary.")
         exp, ssi, sei = hparams(hparam_dict, metric_dict)
 
-        if not name:
-            name = str(time.time())
+        self._get_file_writer().add_summary(exp)
+        self._get_file_writer().add_summary(ssi)
+        self._get_file_writer().add_summary(sei)
+        for k, v in metric_dict.items():
+            self.add_scalar(k, v, global_step)
 
-        with SummaryWriter(logdir=os.path.join(self.file_writer.get_logdir(), name)) as w_hp:
-            w_hp.file_writer.add_summary(exp)
-            w_hp.file_writer.add_summary(ssi)
-            w_hp.file_writer.add_summary(sei)
-            for k, v in metric_dict.items():
-                w_hp.add_scalar(k, v, global_step)
         self._get_comet_logger().log_parameters(hparam_dict, step=global_step)
 
     def add_scalar(
-            self,
-            tag: str,
-            scalar_value: Union[float, numpy_compatible],
-            global_step: Optional[int] = None,
-            walltime: Optional[float] = None,
-            display_name: Optional[str] = "",
-            summary_description: Optional[str] = ""):
+        self,
+        tag: str,
+        scalar_value: Union[float, numpy_compatible],
+        global_step: Optional[int] = None,
+        walltime: Optional[float] = None,
+        display_name: Optional[str] = "",
+        summary_description: Optional[str] = "",
+    ):
         """Add scalar data to summary.
 
         Args:
@@ -449,20 +487,28 @@ class SummaryWriter(object):
 
         """
         if self._check_caffe2_blob(scalar_value):
-            if 'workspace' in globals():
+            if "workspace" in globals():
                 scalar_value = workspace.FetchBlob(scalar_value)
             else:
-                raise TypeError("Input value: \"{}\" is not a scalar".format(scalar_value))
+                raise TypeError(
+                    'Input value: "{}" is not a scalar'.format(scalar_value)
+                )
         self._get_file_writer().add_summary(
-            scalar(tag, scalar_value, display_name, summary_description), global_step, walltime)
-        self._get_comet_logger().log_metric(tag, display_name, scalar_value, global_step)
+            scalar(tag, scalar_value, display_name, summary_description),
+            global_step,
+            walltime,
+        )
+        self._get_comet_logger().log_metric(
+            tag, display_name, scalar_value, global_step
+        )
 
     def add_scalars(
-            self,
-            main_tag: str,
-            tag_scalar_dict: Dict[str, float],
-            global_step: Optional[int] = None,
-            walltime: Optional[float] = None):
+        self,
+        main_tag: str,
+        tag_scalar_dict: Dict[str, float],
+        global_step: Optional[int] = None,
+        walltime: Optional[float] = None,
+    ):
         """Adds many scalar data to summary.
 
         Note that this function also keeps logged scalars in memory. In extreme case it explodes your RAM.
@@ -493,9 +539,22 @@ class SummaryWriter(object):
 
         """
         walltime = time.time() if walltime is None else walltime
-        fw_logdir = self._get_file_writer().get_logdir()
+        username = self.username
+        exp_dir = self.exp_dir
+        model_name = self.model_name
         for tag, scalar_value in tag_scalar_dict.items():
-            fw_tag = fw_logdir + "/" + main_tag + "/" + tag
+            fw_tag = (
+                "Runs/Metrics/"
+                + tag
+                + "/"
+                + username
+                + "/"
+                + exp_dir
+                + "/"
+                + model_name
+                + "/"
+                + main_tag
+            )
             if fw_tag in self.all_writers.keys():
                 fw = self.all_writers[fw_tag]
             else:
@@ -503,11 +562,11 @@ class SummaryWriter(object):
                 self.all_writers[fw_tag] = fw
             if self._check_caffe2_blob(scalar_value):
                 scalar_value = workspace.FetchBlob(scalar_value)
-            fw.add_summary(scalar(main_tag, scalar_value),
-                           global_step, walltime)
-            self.__append_to_scalar_dict(
-                fw_tag, scalar_value, global_step, walltime)
-        self._get_comet_logger().log_metrics(tag_scalar_dict, main_tag, step=global_step)
+            fw.add_summary(scalar(tag, scalar_value), global_step, walltime)
+            self.__append_to_scalar_dict(fw_tag, scalar_value, global_step, walltime)
+        self._get_comet_logger().log_metrics(
+            tag_scalar_dict, main_tag, step=global_step
+        )
 
     def export_scalars_to_json(self, path):
         """Exports to the given path an ASCII file containing all the scalars written
@@ -521,13 +580,14 @@ class SummaryWriter(object):
         self.scalar_dict = {}
 
     def add_histogram(
-            self,
-            tag: str,
-            values: numpy_compatible,
-            global_step: Optional[int] = None,
-            bins: Optional[str] = 'tensorflow',
-            walltime: Optional[float] = None,
-            max_bins=None):
+        self,
+        tag: str,
+        values: numpy_compatible,
+        global_step: Optional[int] = None,
+        bins: Optional[str] = "tensorflow",
+        walltime: Optional[float] = None,
+        max_bins=None,
+    ):
         """Add histogram to summary.
 
         Args:
@@ -557,24 +617,26 @@ class SummaryWriter(object):
         """
         if self._check_caffe2_blob(values):
             values = workspace.FetchBlob(values)
-        if isinstance(bins, six.string_types) and bins == 'tensorflow':
+        if isinstance(bins, six.string_types) and bins == "tensorflow":
             bins = self.default_bins
         self._get_file_writer().add_summary(
-            histogram(tag, values, bins, max_bins=max_bins), global_step, walltime)
+            histogram(tag, values, bins, max_bins=max_bins), global_step, walltime
+        )
         self._get_comet_logger().log_histogram(values, tag, global_step)
 
     def add_histogram_raw(
-            self,
-            tag: str,
-            min,
-            max,
-            num,
-            sum,
-            sum_squares,
-            bucket_limits,
-            bucket_counts,
-            global_step: Optional[int] = None,
-            walltime: Optional[float] = None):
+        self,
+        tag: str,
+        min,
+        max,
+        num,
+        sum,
+        sum_squares,
+        bucket_limits,
+        bucket_counts,
+        global_step: Optional[int] = None,
+        walltime: Optional[float] = None,
+    ):
         """Adds histogram with raw data.
 
         Args:
@@ -614,34 +676,37 @@ class SummaryWriter(object):
 
         """
         if len(bucket_limits) != len(bucket_counts):
-            raise ValueError('len(bucket_limits) != len(bucket_counts), see the document.')
+            raise ValueError(
+                "len(bucket_limits) != len(bucket_counts), see the document."
+            )
         self._get_file_writer().add_summary(
-            histogram_raw(tag,
-                          min,
-                          max,
-                          num,
-                          sum,
-                          sum_squares,
-                          bucket_limits,
-                          bucket_counts),
+            histogram_raw(
+                tag, min, max, num, sum, sum_squares, bucket_limits, bucket_counts
+            ),
             global_step,
-            walltime)
-        self._get_comet_logger().log_raw_figure(tag, 'histogram_raw', global_step,
-                                                min=min,
-                                                max=max,
-                                                num=num,
-                                                sum=sum,
-                                                sum_squares=sum_squares,
-                                                bucket_limits=bucket_limits,
-                                                bucket_counts=bucket_counts)
+            walltime,
+        )
+        self._get_comet_logger().log_raw_figure(
+            tag,
+            "histogram_raw",
+            global_step,
+            min=min,
+            max=max,
+            num=num,
+            sum=sum,
+            sum_squares=sum_squares,
+            bucket_limits=bucket_limits,
+            bucket_counts=bucket_counts,
+        )
 
     def add_image(
-            self,
-            tag: str,
-            img_tensor: numpy_compatible,
-            global_step: Optional[int] = None,
-            walltime: Optional[float] = None,
-            dataformats: Optional[str] = 'CHW'):
+        self,
+        tag: str,
+        img_tensor: numpy_compatible,
+        global_step: Optional[int] = None,
+        walltime: Optional[float] = None,
+        dataformats: Optional[str] = "CHW",
+    ):
         """Add image data to summary.
 
         Note that this requires the ``pillow`` package.
@@ -691,17 +756,19 @@ class SummaryWriter(object):
             img_tensor = workspace.FetchBlob(img_tensor)
         summary = image(tag, img_tensor, dataformats=dataformats)
         encoded_image_string = summary.value[0].image.encoded_image_string
-        self._get_file_writer().add_summary(
-            summary, global_step, walltime)
-        self._get_comet_logger().log_image_encoded(encoded_image_string, tag, step=global_step)
+        self._get_file_writer().add_summary(summary, global_step, walltime)
+        self._get_comet_logger().log_image_encoded(
+            encoded_image_string, tag, step=global_step
+        )
 
     def add_images(
-            self,
-            tag: str,
-            img_tensor: numpy_compatible,
-            global_step: Optional[int] = None,
-            walltime: Optional[float] = None,
-            dataformats: Optional[str] = 'NCHW'):
+        self,
+        tag: str,
+        img_tensor: numpy_compatible,
+        global_step: Optional[int] = None,
+        walltime: Optional[float] = None,
+        dataformats: Optional[str] = "NCHW",
+    ):
         """Add batched (4D) image data to summary.
         Besides passing 4D (NCHW) tensor, you can also pass a list of tensors of the same size.
         In this case, the ``dataformats`` should be `CHW` or `HWC`.
@@ -741,35 +808,41 @@ class SummaryWriter(object):
         if self._check_caffe2_blob(img_tensor):
             img_tensor = workspace.FetchBlob(img_tensor)
         if isinstance(img_tensor, list):  # a list of tensors in CHW or HWC
-            if dataformats.upper() != 'CHW' and dataformats.upper() != 'HWC':
-                print('A list of image is passed, but the dataformat is neither CHW nor HWC.')
-                print('Nothing is written.')
+            if dataformats.upper() != "CHW" and dataformats.upper() != "HWC":
+                print(
+                    "A list of image is passed, but the dataformat is neither CHW nor HWC."
+                )
+                print("Nothing is written.")
                 return
             import torch
+
             try:
                 img_tensor = torch.stack(img_tensor, 0)
             except TypeError as e:
                 import numpy as np
+
                 img_tensor = np.stack(img_tensor, 0)
 
-            dataformats = 'N' + dataformats
+            dataformats = "N" + dataformats
 
         summary = image(tag, img_tensor, dataformats=dataformats)
         encoded_image_string = summary.value[0].image.encoded_image_string
-        self._get_file_writer().add_summary(
-            summary, global_step, walltime)
-        self._get_comet_logger().log_image_encoded(encoded_image_string, tag, step=global_step)
+        self._get_file_writer().add_summary(summary, global_step, walltime)
+        self._get_comet_logger().log_image_encoded(
+            encoded_image_string, tag, step=global_step
+        )
 
     def add_image_with_boxes(
-            self,
-            tag: str,
-            img_tensor: numpy_compatible,
-            box_tensor: numpy_compatible,
-            global_step: Optional[int] = None,
-            walltime: Optional[float] = None,
-            dataformats: Optional[str] = 'CHW',
-            labels: Optional[List[str]] = None,
-            **kwargs):
+        self,
+        tag: str,
+        img_tensor: numpy_compatible,
+        box_tensor: numpy_compatible,
+        global_step: Optional[int] = None,
+        walltime: Optional[float] = None,
+        dataformats: Optional[str] = "CHW",
+        labels: Optional[List[str]] = None,
+        **kwargs
+    ):
         """Add image and draw bounding boxes on the image.
 
         Args:
@@ -795,22 +868,32 @@ class SummaryWriter(object):
             if isinstance(labels, str):
                 labels = [labels]
             if len(labels) != box_tensor.shape[0]:
-                logging.warning('Number of labels do not equal to number of box, skip the labels.')
+                logging.warning(
+                    "Number of labels do not equal to number of box, skip the labels."
+                )
                 labels = None
         summary = image_boxes(
-            tag, img_tensor, box_tensor, dataformats=dataformats, labels=labels, **kwargs)
+            tag,
+            img_tensor,
+            box_tensor,
+            dataformats=dataformats,
+            labels=labels,
+            **kwargs
+        )
         encoded_image_string = summary.value[0].image.encoded_image_string
-        self._get_file_writer().add_summary(
-            summary, global_step, walltime)
-        self._get_comet_logger().log_image_encoded(encoded_image_string, tag, step=global_step)
+        self._get_file_writer().add_summary(summary, global_step, walltime)
+        self._get_comet_logger().log_image_encoded(
+            encoded_image_string, tag, step=global_step
+        )
 
     def add_figure(
-            self,
-            tag: str,
-            figure,
-            global_step: Optional[int] = None,
-            close: Optional[bool] = True,
-            walltime: Optional[float] = None):
+        self,
+        tag: str,
+        figure,
+        global_step: Optional[int] = None,
+        close: Optional[bool] = True,
+        walltime: Optional[float] = None,
+    ):
         """Render matplotlib figure into an image and add it to summary.
 
         Note that this requires the ``matplotlib`` package.
@@ -823,18 +906,31 @@ class SummaryWriter(object):
             walltime: Override default walltime (time.time()) of event
         """
         if isinstance(figure, list):
-            self.add_image(tag, figure_to_image(figure, close), global_step, walltime, dataformats='NCHW')
+            self.add_image(
+                tag,
+                figure_to_image(figure, close),
+                global_step,
+                walltime,
+                dataformats="NCHW",
+            )
         else:
-            self.add_image(tag, figure_to_image(figure, close), global_step, walltime, dataformats='CHW')
+            self.add_image(
+                tag,
+                figure_to_image(figure, close),
+                global_step,
+                walltime,
+                dataformats="CHW",
+            )
 
     def add_video(
-            self,
-            tag: str,
-            vid_tensor: numpy_compatible,
-            global_step: Optional[int] = None,
-            fps: Optional[Union[int, float]] = 4,
-            walltime: Optional[float] = None,
-            dataformats: Optional[str] = 'NTCHW'):
+        self,
+        tag: str,
+        vid_tensor: numpy_compatible,
+        global_step: Optional[int] = None,
+        fps: Optional[Union[int, float]] = 4,
+        walltime: Optional[float] = None,
+        dataformats: Optional[str] = "NTCHW",
+    ):
         """Add video data to summary.
 
         Note that this requires the ``moviepy`` package.
@@ -852,17 +948,19 @@ class SummaryWriter(object):
         """
         summary = video(tag, vid_tensor, fps, dataformats=dataformats)
         encoded_image_string = summary.value[0].image.encoded_image_string
-        self._get_file_writer().add_summary(
-            summary, global_step, walltime)
-        self._get_comet_logger().log_image_encoded(encoded_image_string, tag, step=global_step)
+        self._get_file_writer().add_summary(summary, global_step, walltime)
+        self._get_comet_logger().log_image_encoded(
+            encoded_image_string, tag, step=global_step
+        )
 
     def add_audio(
-            self,
-            tag: str,
-            snd_tensor: numpy_compatible,
-            global_step: Optional[int],
-            sample_rate: Optional[int] = 44100,
-            walltime: Optional[float] = None):
+        self,
+        tag: str,
+        snd_tensor: numpy_compatible,
+        global_step: Optional[int],
+        sample_rate: Optional[int] = 44100,
+        walltime: Optional[float] = None,
+    ):
         """Add audio data to summary.
 
         Args:
@@ -879,15 +977,19 @@ class SummaryWriter(object):
         if self._check_caffe2_blob(snd_tensor):
             snd_tensor = workspace.FetchBlob(snd_tensor)
         self._get_file_writer().add_summary(
-            audio(tag, snd_tensor, sample_rate=sample_rate), global_step, walltime)
-        self._get_comet_logger().log_audio(snd_tensor, sample_rate, tag, step=global_step)
+            audio(tag, snd_tensor, sample_rate=sample_rate), global_step, walltime
+        )
+        self._get_comet_logger().log_audio(
+            snd_tensor, sample_rate, tag, step=global_step
+        )
 
     def add_text(
-            self,
-            tag: str,
-            text_string: str,
-            global_step: Optional[int] = None,
-            walltime: Optional[float] = None):
+        self,
+        tag: str,
+        text_string: str,
+        global_step: Optional[int] = None,
+        walltime: Optional[float] = None,
+    ):
         """Add text data to summary.
 
         Args:
@@ -901,12 +1003,11 @@ class SummaryWriter(object):
             writer.add_text('rnn', 'This is an rnn', 10)
         """
         self._get_file_writer().add_summary(
-            text(tag, text_string), global_step, walltime)
+            text(tag, text_string), global_step, walltime
+        )
         self._get_comet_logger().log_text(text_string, global_step)
 
-    def add_onnx_graph(
-            self,
-            onnx_model_file):
+    def add_onnx_graph(self, onnx_model_file):
         """Add onnx graph to TensorBoard.
 
         Args:
@@ -915,9 +1016,7 @@ class SummaryWriter(object):
         self._get_file_writer().add_onnx_graph(load_onnx_graph(onnx_model_file))
         self._get_comet_logger().log_asset(onnx_model_file)
 
-    def add_openvino_graph(
-            self,
-            xmlname):
+    def add_openvino_graph(self, xmlname):
         """Add openvino graph to TensorBoard.
 
         Args:
@@ -926,11 +1025,7 @@ class SummaryWriter(object):
         self._get_file_writer().add_openvino_graph(load_openvino_graph(xmlname))
         self._get_comet_logger().log_asset(xmlname)
 
-    def add_graph(
-            self,
-            model,
-            input_to_model=None,
-            verbose=False):
+    def add_graph(self, model, input_to_model=None, verbose=False):
         """Add graph data to summary. The graph is actually processed by `torch.utils.tensorboard.add_graph()`
 
         Args:
@@ -941,15 +1036,17 @@ class SummaryWriter(object):
 
         """
         from torch.utils.tensorboard._pytorch_graph import graph
+
         self._get_file_writer().add_graph(graph(model, input_to_model, verbose))
 
     def add_graph_deprecated(
-            self,
-            model,
-            input_to_model=None,
-            verbose=False,
-            profile_with_cuda=False,
-            **kwargs):
+        self,
+        model,
+        input_to_model=None,
+        verbose=False,
+        profile_with_cuda=False,
+        **kwargs
+    ):
         # prohibit second call?
         # no, let tensorboard handle it and show its warning message.
         """[deprecated] Add graph data to summary. This was used in tensorboardX <= 2.0
@@ -965,40 +1062,42 @@ class SummaryWriter(object):
                 the graph, using ``"RAW"`` might help.
 
         """
-        if hasattr(model, 'forward'):
+        if hasattr(model, "forward"):
             # A valid PyTorch model should have a 'forward' method
             import torch
             from distutils.version import LooseVersion
+
             if LooseVersion(torch.__version__) >= LooseVersion("0.3.1"):
                 pass
             else:
                 if LooseVersion(torch.__version__) >= LooseVersion("0.3.0"):
-                    print('You are using PyTorch==0.3.0, use add_onnx_graph()')
+                    print("You are using PyTorch==0.3.0, use add_onnx_graph()")
                     return
-                if not hasattr(torch.autograd.Variable, 'grad_fn'):
-                    print('add_graph() only supports PyTorch v0.2.')
+                if not hasattr(torch.autograd.Variable, "grad_fn"):
+                    print("add_graph() only supports PyTorch v0.2.")
                     return
-            self._get_file_writer().add_graph(graph(model, input_to_model, verbose, profile_with_cuda, **kwargs))
+            self._get_file_writer().add_graph(
+                graph(model, input_to_model, verbose, profile_with_cuda, **kwargs)
+            )
         else:
             # Caffe2 models do not have the 'forward' method
             from caffe2.proto import caffe2_pb2
             from caffe2.python import core
             from .caffe2_graph import (
-                model_to_graph_def, nets_to_graph_def, protos_to_graph_def
+                model_to_graph_def,
+                nets_to_graph_def,
+                protos_to_graph_def,
             )
+
             if isinstance(model, list):
                 if isinstance(model[0], core.Net):
-                    current_graph = nets_to_graph_def(
-                        model, **kwargs)
+                    current_graph = nets_to_graph_def(model, **kwargs)
                 elif isinstance(model[0], caffe2_pb2.NetDef):
-                    current_graph = protos_to_graph_def(
-                        model, **kwargs)
+                    current_graph = protos_to_graph_def(model, **kwargs)
             else:
                 # Handles cnn.CNNModelHelper, model_helper.ModelHelper
-                current_graph = model_to_graph_def(
-                    model, **kwargs)
-            event = event_pb2.Event(
-                graph_def=current_graph.SerializeToString())
+                current_graph = model_to_graph_def(model, **kwargs)
+            event = event_pb2.Event(graph_def=current_graph.SerializeToString())
             self._get_file_writer().add_event(event)
 
     @staticmethod
@@ -1011,13 +1110,14 @@ class SummaryWriter(object):
         return retval
 
     def add_embedding(
-            self,
-            mat: numpy_compatible,
-            metadata=None,
-            label_img: numpy_compatible = None,
-            global_step: Optional[int] = None,
-            tag='default',
-            metadata_header=None):
+        self,
+        mat: numpy_compatible,
+        metadata=None,
+        label_img: numpy_compatible = None,
+        global_step: Optional[int] = None,
+        tag="default",
+        metadata_header=None,
+    ):
         r"""Add embedding projector data to summary.
 
         Args:
@@ -1063,6 +1163,7 @@ class SummaryWriter(object):
         # The hard-coded projector_config.pbtxt is the only source for TensorBoard's
         # current implementation. (as of Dec. 2019)
         from .x2num import make_np
+
         mat = make_np(mat)
         if global_step is None:
             global_step = 0
@@ -1075,37 +1176,54 @@ class SummaryWriter(object):
             os.makedirs(save_path)
         except OSError:
             print(
-                'warning: Embedding dir exists, did you set global_step for add_embedding()?')
+                "warning: Embedding dir exists, did you set global_step for add_embedding()?"
+            )
         if metadata is not None:
             assert mat.shape[0] == len(
-                metadata), '#labels should equal with #data points'
+                metadata
+            ), "#labels should equal with #data points"
             make_tsv(metadata, save_path, metadata_header=metadata_header)
         if label_img is not None:
-            assert mat.shape[0] == label_img.shape[0], '#images should equal with #data points'
-            assert label_img.shape[2] == label_img.shape[3], 'Image should be square, see tensorflow/tensorboard#670'
+            assert (
+                mat.shape[0] == label_img.shape[0]
+            ), "#images should equal with #data points"
+            assert (
+                label_img.shape[2] == label_img.shape[3]
+            ), "Image should be square, see tensorflow/tensorboard#670"
             make_sprite(label_img, save_path)
-        assert mat.ndim == 2, 'mat should be 2D, where mat.size(0) is the number of data points'
+        assert (
+            mat.ndim == 2
+        ), "mat should be 2D, where mat.size(0) is the number of data points"
         make_mat(mat, save_path)
         # new funcion to append to the config file a new embedding
-        append_pbtxt(metadata, label_img,
-                     self._get_file_writer().get_logdir(), subdir, global_step, tag)
+        append_pbtxt(
+            metadata,
+            label_img,
+            self._get_file_writer().get_logdir(),
+            subdir,
+            global_step,
+            tag,
+        )
         if tag is not None:
             template_filename = "%s.json" % tag
 
         else:
             template_filename = None
 
-        self._get_comet_logger().log_embedding(mat, metadata, label_img, template_filename=template_filename)
+        self._get_comet_logger().log_embedding(
+            mat, metadata, label_img, template_filename=template_filename
+        )
 
     def add_pr_curve(
-            self,
-            tag: str,
-            labels: numpy_compatible,
-            predictions: numpy_compatible,
-            global_step: Optional[int] = None,
-            num_thresholds: Optional[int] = 127,
-            weights=None,
-            walltime: Optional[float] = None):
+        self,
+        tag: str,
+        labels: numpy_compatible,
+        predictions: numpy_compatible,
+        global_step: Optional[int] = None,
+        num_thresholds: Optional[int] = 127,
+        weights=None,
+        walltime: Optional[float] = None,
+    ):
         """Adds precision recall curve.
         Plotting a precision-recall curve lets you understand your model's
         performance under different threshold settings. With this function,
@@ -1135,25 +1253,29 @@ class SummaryWriter(object):
 
         """
         from .x2num import make_np
+
         labels, predictions = make_np(labels), make_np(predictions)
         self._get_file_writer().add_summary(
             pr_curve(tag, labels, predictions, num_thresholds, weights),
-            global_step, walltime)
+            global_step,
+            walltime,
+        )
         self._get_comet_logger().log_curve(tag, labels, predictions, step=global_step)
 
     def add_pr_curve_raw(
-            self,
-            tag: str,
-            true_positive_counts: numpy_compatible,
-            false_positive_counts: numpy_compatible,
-            true_negative_counts: numpy_compatible,
-            false_negative_counts: numpy_compatible,
-            precision: numpy_compatible,
-            recall: numpy_compatible,
-            global_step: Optional[int] = None,
-            num_thresholds: Optional[int] = 127,
-            weights=None,
-            walltime: Optional[float] = None):
+        self,
+        tag: str,
+        true_positive_counts: numpy_compatible,
+        false_positive_counts: numpy_compatible,
+        true_negative_counts: numpy_compatible,
+        false_negative_counts: numpy_compatible,
+        precision: numpy_compatible,
+        recall: numpy_compatible,
+        global_step: Optional[int] = None,
+        num_thresholds: Optional[int] = 127,
+        weights=None,
+        walltime: Optional[float] = None,
+    ):
         """Adds precision recall curve with raw data.
 
         Args:
@@ -1165,33 +1287,38 @@ class SummaryWriter(object):
               <https://github.com/tensorflow/tensorboard/blob/master/tensorboard/plugins/pr_curve/README.md>`_
         """
         self._get_file_writer().add_summary(
-            pr_curve_raw(tag,
-                         true_positive_counts,
-                         false_positive_counts,
-                         true_negative_counts,
-                         false_negative_counts,
-                         precision,
-                         recall,
-                         num_thresholds,
-                         weights),
+            pr_curve_raw(
+                tag,
+                true_positive_counts,
+                false_positive_counts,
+                true_negative_counts,
+                false_negative_counts,
+                precision,
+                recall,
+                num_thresholds,
+                weights,
+            ),
             global_step,
-            walltime)
-        self._get_comet_logger().log_raw_figure(tag, 'pr_curve_raw', global_step,
-                                                true_positive_counts=true_positive_counts,
-                                                false_positive_counts=false_positive_counts,
-                                                true_negative_counts=true_negative_counts,
-                                                false_negative_counts=false_negative_counts,
-                                                precision=precision,
-                                                recall=recall,
-                                                num_thresholds=num_thresholds,
-                                                weights=weights,
-                                                walltime=walltime)
+            walltime,
+        )
+        self._get_comet_logger().log_raw_figure(
+            tag,
+            "pr_curve_raw",
+            global_step,
+            true_positive_counts=true_positive_counts,
+            false_positive_counts=false_positive_counts,
+            true_negative_counts=true_negative_counts,
+            false_negative_counts=false_negative_counts,
+            precision=precision,
+            recall=recall,
+            num_thresholds=num_thresholds,
+            weights=weights,
+            walltime=walltime,
+        )
 
     def add_custom_scalars_multilinechart(
-            self,
-            tags: List[str],
-            category: str = 'default',
-            title: str = 'untitled'):
+        self, tags: List[str], category: str = "default", title: str = "untitled"
+    ):
         """Shorthand for creating multilinechart. Similar to ``add_custom_scalars()``, but the only necessary argument
         is *tags*.
 
@@ -1202,14 +1329,12 @@ class SummaryWriter(object):
 
             writer.add_custom_scalars_multilinechart(['twse/0050', 'twse/2330'])
         """
-        layout = {category: {title: ['Multiline', tags]}}
+        layout = {category: {title: ["Multiline", tags]}}
         self._get_file_writer().add_summary(custom_scalars(layout))
 
     def add_custom_scalars_marginchart(
-            self,
-            tags: List[str],
-            category: str = 'default',
-            title: str = 'untitled'):
+        self, tags: List[str], category: str = "default", title: str = "untitled"
+    ):
         """Shorthand for creating marginchart. Similar to ``add_custom_scalars()``, but the only necessary argument
         is *tags*, which should have exactly 3 elements.
 
@@ -1221,12 +1346,10 @@ class SummaryWriter(object):
             writer.add_custom_scalars_marginchart(['twse/0050', 'twse/2330', 'twse/2006'])
         """
         assert len(tags) == 3
-        layout = {category: {title: ['Margin', tags]}}
+        layout = {category: {title: ["Margin", tags]}}
         self._get_file_writer().add_summary(custom_scalars(layout))
 
-    def add_custom_scalars(
-            self,
-            layout: Dict[str, Dict[str, List]]):
+    def add_custom_scalars(self, layout: Dict[str, Dict[str, List]]):
         """Create special chart by collecting charts tags in 'scalars'. Note that this function can only be called once
         for each SummaryWriter() object. Because it only provides metadata to tensorboard, the function can be called
         before or after the training loop. See ``examples/demo_custom_scalars.py`` for more.
@@ -1248,14 +1371,15 @@ class SummaryWriter(object):
         self._get_file_writer().add_summary(custom_scalars(layout))
 
     def add_mesh(
-            self,
-            tag: str,
-            vertices: numpy_compatible,
-            colors: numpy_compatible = None,
-            faces: numpy_compatible = None,
-            config_dict=None,
-            global_step: Optional[int] = None,
-            walltime: Optional[float] = None):
+        self,
+        tag: str,
+        vertices: numpy_compatible,
+        colors: numpy_compatible = None,
+        faces: numpy_compatible = None,
+        config_dict=None,
+        global_step: Optional[int] = None,
+        walltime: Optional[float] = None,
+    ):
         """Add meshes or 3D point clouds to TensorBoard. The visualization is based on Three.js,
         so it allows users to interact with the rendered object. Besides the basic definitions
         such as vertices, faces, users can further provide camera parameter, lighting condition, etc.
@@ -1286,9 +1410,12 @@ class SummaryWriter(object):
            :scale: 30 %
 
         """
-        self._get_file_writer().add_summary(mesh(tag, vertices, colors, faces, config_dict), global_step, walltime)
-        self._get_comet_logger().log_mesh(tag, vertices, colors, faces,
-                                          config_dict, global_step, walltime)
+        self._get_file_writer().add_summary(
+            mesh(tag, vertices, colors, faces, config_dict), global_step, walltime
+        )
+        self._get_comet_logger().log_mesh(
+            tag, vertices, colors, faces, config_dict, global_step, walltime
+        )
 
     def close(self):
         """Close the current SummaryWriter. This call flushes the unfinished write operation.

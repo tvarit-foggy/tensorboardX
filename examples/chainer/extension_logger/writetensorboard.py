@@ -53,8 +53,14 @@ class LogTensorboard(extension.Extension):
 
     """
 
-    def __init__(self, keys=None, trigger=(1, 'epoch'), postprocess=None,
-                 log_name='log', logger=None):
+    def __init__(
+        self,
+        keys=None,
+        trigger=(1, "epoch"),
+        postprocess=None,
+        log_name="log",
+        logger=None,
+    ):
         self._keys = keys
         self._trigger = trigger_module.get_trigger(trigger)
         self._postprocess = postprocess
@@ -74,9 +80,8 @@ class LogTensorboard(extension.Extension):
         else:
             summary.add({k: observation[k] for k in keys if k in observation})
         for k, v in observation.items():
-            #self._logger.add_scalar(k, chainer.cuda.to_cpu(observation[k].data), trainer.updater.iteration)
-            self._logger.add_scalar(
-                k, observation[k], trainer.updater.iteration)
+            # self._logger.add_scalar(k, chainer.cuda.to_cpu(observation[k].data), trainer.updater.iteration)
+            self._logger.add_scalar(k, observation[k], trainer.updater.iteration)
         if self._trigger(trainer):
             # output the result
             stats = self._summary.compute_mean()
@@ -85,9 +90,9 @@ class LogTensorboard(extension.Extension):
                 stats_cpu[name] = float(value)  # copy to CPU
 
             updater = trainer.updater
-            stats_cpu['epoch'] = updater.epoch
-            stats_cpu['iteration'] = updater.iteration
-            stats_cpu['elapsed_time'] = trainer.elapsed_time
+            stats_cpu["epoch"] = updater.epoch
+            stats_cpu["iteration"] = updater.iteration
+            stats_cpu["elapsed_time"] = trainer.elapsed_time
 
             if self._postprocess is not None:
                 self._postprocess(stats_cpu)
@@ -98,7 +103,7 @@ class LogTensorboard(extension.Extension):
             if self._log_name is not None:
                 log_name = self._log_name.format(**stats_cpu)
                 fd, path = tempfile.mkstemp(prefix=log_name, dir=trainer.out)
-                with os.fdopen(fd, 'w') as f:
+                with os.fdopen(fd, "w") as f:
                     json.dump(self._log, f, indent=4)
 
                 new_path = os.path.join(trainer.out, log_name)
@@ -113,16 +118,16 @@ class LogTensorboard(extension.Extension):
         return self._log
 
     def serialize(self, serializer):
-        if hasattr(self._trigger, 'serialize'):
-            self._trigger.serialize(serializer['_trigger'])
+        if hasattr(self._trigger, "serialize"):
+            self._trigger.serialize(serializer["_trigger"])
 
         # Note that this serialization may lose some information of small
         # numerical differences.
         if isinstance(serializer, serializer_module.Serializer):
             log = json.dumps(self._log)
-            serializer('_log', log)
+            serializer("_log", log)
         else:
-            log = serializer('_log', '')
+            log = serializer("_log", "")
             self._log = json.loads(log)
 
     def _init_summary(self):

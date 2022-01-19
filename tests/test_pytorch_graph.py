@@ -16,13 +16,13 @@ class PytorchGraphTest(unittest.TestCase):
             def forward(self, x):
                 return self.linear(x)
 
-        with SummaryWriter(comment='LinearModel') as w:
+        with SummaryWriter(comment="LinearModel") as w:
             w.add_graph(myLinear(), dummy_input, True)
 
     def test_wrong_input_size(self):
-        print('expect error here:')
+        print("expect error here:")
         with self.assertRaises(RuntimeError):
             dummy_input = torch.rand(1, 9)
             model = torch.nn.Linear(3, 5)
-            with SummaryWriter(comment='expect_error') as w:
+            with SummaryWriter(comment="expect_error") as w:
                 w.add_graph(model, dummy_input)  # error

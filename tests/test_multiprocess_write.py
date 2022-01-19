@@ -16,7 +16,7 @@ class GlobalWriterTest(unittest.TestCase):
         w = SummaryWriter(flush_secs=1)
         f = w.file_writer.event_writer._ev_writer._file_name
         for i in range(N_TEST):
-            w.add_scalar('a', i)
+            w.add_scalar("a", i)
             time.sleep(2)
         r = PyRecordReader_New(f)
         r.GetNext()  # meta data, so skip
@@ -29,7 +29,7 @@ class GlobalWriterTest(unittest.TestCase):
             w = SummaryWriter(flush_secs=20)
             f = w.file_writer.event_writer._ev_writer._file_name
             for i in range(N_TEST):
-                w.add_scalar('a', i)
+                w.add_scalar("a", i)
                 time.sleep(2)
             r = PyRecordReader_New(f)
             r.GetNext()  # meta data, so skip
@@ -41,14 +41,13 @@ class GlobalWriterTest(unittest.TestCase):
         w = SummaryWriter(flush_secs=20)
         f = w.file_writer.event_writer._ev_writer._file_name
         for i in range(N_TEST):
-            w.add_scalar('a', i)
+            w.add_scalar("a", i)
             time.sleep(2)
         w.close()
         r = PyRecordReader_New(f)
         r.GetNext()  # meta data, so skip
         for _ in range(N_TEST):  # all of the data should be flushed
             r.GetNext()
-
 
     def test_auto_close(self):
         pass
@@ -60,10 +59,11 @@ class GlobalWriterTest(unittest.TestCase):
         event_filename = writer.file_writer.event_writer._ev_writer._file_name
 
         predifined_values = list(range(TEST_LEN))
+
         def train3():
             for i in range(TEST_LEN):
-                writer.add_scalar('many_write_in_func', predifined_values[i])
-                time.sleep(0.01*np.random.randint(0, 10))
+                writer.add_scalar("many_write_in_func", predifined_values[i])
+                time.sleep(0.01 * np.random.randint(0, 10))
 
         processes = []
         for i in range(N_PROC):
@@ -75,11 +75,10 @@ class GlobalWriterTest(unittest.TestCase):
             p.join()
         writer.close()
 
-
         collected_values = []
         r = PyRecordReader_New(event_filename)
         r.GetNext()  # meta data, so skip
-        for _ in range(TEST_LEN*N_PROC):  # all of the data should be flushed
+        for _ in range(TEST_LEN * N_PROC):  # all of the data should be flushed
             r.GetNext()
             ev = event_pb2.Event()
             value = ev.FromString(r.record()).summary.value
@@ -88,4 +87,4 @@ class GlobalWriterTest(unittest.TestCase):
         collected_values = sorted(collected_values)
         for i in range(TEST_LEN):
             for j in range(N_PROC):
-                assert collected_values[i*N_PROC+j] == i 
+                assert collected_values[i * N_PROC + j] == i

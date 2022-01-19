@@ -30,31 +30,38 @@ from .record_writer import RecordWriter, directory_check
 
 
 class EventsWriter(object):
-    '''Writes `Event` protocol buffers to an event file.'''
+    """Writes `Event` protocol buffers to an event file."""
 
-    def __init__(self, file_prefix, filename_suffix=''):
-        '''
+    def __init__(self, file_prefix, filename_suffix=""):
+        """
         Events files have a name of the form
         '/some/file/path/events.out.tfevents.[timestamp].[hostname]'
-        '''
-        self._file_name = file_prefix + ".out.tfevents." + str(time.time())[:10] + "." +\
-            socket.gethostname() + filename_suffix
+        """
+        self._file_name = (
+            file_prefix
+            + ".out.tfevents."
+            + str(time.time())[:10]
+            + "."
+            + socket.gethostname()
+            + filename_suffix
+        )
         self._num_outstanding_events = 0
         self._py_recordio_writer = RecordWriter(self._file_name)
         # Initialize an event instance.
         self._event = event_pb2.Event()
         self._event.wall_time = time.time()
-        self._event.file_version = 'brain.Event:2'
+        self._event.file_version = "brain.Event:2"
         self._lock = threading.Lock()
         self.write_event(self._event)
 
     def write_event(self, event):
-        '''Append "event" to the file.'''
+        """Append "event" to the file."""
 
         # Check if event is of type event_pb2.Event proto.
         if not isinstance(event, event_pb2.Event):
-            raise TypeError("Expected an event_pb2.Event proto, "
-                            " but got %s" % type(event))
+            raise TypeError(
+                "Expected an event_pb2.Event proto, " " but got %s" % type(event)
+            )
         return self._write_serialized_event(event.SerializeToString())
 
     def _write_serialized_event(self, event_str):
@@ -63,14 +70,14 @@ class EventsWriter(object):
             self._py_recordio_writer.write(event_str)
 
     def flush(self):
-        '''Flushes the event file to disk.'''
+        """Flushes the event file to disk."""
         with self._lock:
             self._num_outstanding_events = 0
             self._py_recordio_writer.flush()
         return True
 
     def close(self):
-        '''Call self.flush().'''
+        """Call self.flush()."""
         return_value = self.flush()
         with self._lock:
             self._py_recordio_writer.close()
@@ -85,7 +92,7 @@ class EventFileWriter(object):
     is encoded using the tfrecord format, which is similar to RecordIO.
     """
 
-    def __init__(self, logdir, max_queue_size=10, flush_secs=120, filename_suffix=''):
+    def __init__(self, logdir, max_queue_size=10, flush_secs=120, filename_suffix=""):
         """Creates a `EventFileWriter` and an event file to write to.
 
         On construction the summary writer creates a new event file in `logdir`.
@@ -103,12 +110,14 @@ class EventFileWriter(object):
         self._logdir = logdir
         directory_check(self._logdir)
         self._event_queue = multiprocessing.Queue(max_queue_size)
-        self._ev_writer = EventsWriter(os.path.join(
-            self._logdir, "events"), filename_suffix)
+        self._ev_writer = EventsWriter(
+            os.path.join(self._logdir, "events"), filename_suffix
+        )
         self._flush_secs = flush_secs
         self._closed = False
-        self._worker = _EventLoggerThread(self._event_queue, self._ev_writer,
-                                          flush_secs)
+        self._worker = _EventLoggerThread(
+            self._event_queue, self._ev_writer, flush_secs
+        )
 
         self._worker.start()
 

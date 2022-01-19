@@ -1,9 +1,5 @@
 History
 =======
-2.4.1 (2021-11-20)
--------------------
-* Fix a comet plugin bug if writer is reused. (#639)
-
 2.4 (2021-06-30)
 -----------------
 * Remove a dependency issue. (#631)

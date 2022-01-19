@@ -4,8 +4,10 @@ import functools
 from io import BytesIO
 import numpy as np
 from .summary import _clean_tag
+
 try:
     import comet_ml
+
     comet_installed = True
     from PIL import Image
 except ImportError:
@@ -20,7 +22,7 @@ class CometLogger:
         if comet_config["disabled"] is True:
             self._logging = False
         elif comet_config["disabled"] is False and comet_installed is False:
-            raise Exception("Comet and/or Python Image Library not installed. Run 'pip install comet-ml pillow'")
+            raise Exception("Comet not installed. Run 'pip install comet-ml'")
 
     def _requiresComet(method):
         @functools.wraps(method)
@@ -30,12 +32,14 @@ class CometLogger:
             if self._logging is None and comet_installed:
                 self._logging = False
                 try:
-                    if 'api_key' not in self._comet_config.keys():
+                    if "api_key" not in self._comet_config.keys():
                         comet_ml.init()
                     if comet_ml.get_global_experiment() is not None:
-                        logging.warning("You have already created a comet \
+                        logging.warning(
+                            "You have already created a comet \
                                         experiment manually, which might \
-                                        cause clashes")
+                                        cause clashes"
+                        )
                     self._experiment = comet_ml.Experiment(**self._comet_config)
                     self._logging = True
                     self._experiment.log_other("Created from", "tensorboardX")
@@ -44,6 +48,7 @@ class CometLogger:
 
             if self._logging is True:
                 return method(*args, **kwargs)
+
         return wrapper
 
     @_requiresComet
@@ -53,8 +58,9 @@ class CometLogger:
         comet_ml.config.experiment = None
 
     @_requiresComet
-    def log_metric(self, tag, display_name, value, step=None, epoch=None,
-                   include_context=True):
+    def log_metric(
+        self, tag, display_name, value, step=None, epoch=None, include_context=True
+    ):
         """Logs a general metric (i.e accuracy, f1)..
 
         Args:
@@ -68,8 +74,7 @@ class CometLogger:
                 the current context will be logged along the metric.
         """
         name = _clean_tag(tag) if display_name == "" else display_name
-        self._experiment.log_metric(name, value, step, epoch,
-                                    include_context)
+        self._experiment.log_metric(name, value, step, epoch, include_context)
 
     @_requiresComet
     def log_metrics(self, dic, prefix=None, step=None, epoch=None):
@@ -95,9 +100,16 @@ class CometLogger:
         self._experiment.log_parameters(parameters, prefix, step)
 
     @_requiresComet
-    def log_audio(self, audio_data, sample_rate=None, file_name=None,
-                  metadata=None, overwrite=False, copy_to_tmp=True,
-                  step=None):
+    def log_audio(
+        self,
+        audio_data,
+        sample_rate=None,
+        file_name=None,
+        metadata=None,
+        overwrite=False,
+        copy_to_tmp=True,
+        step=None,
+    ):
         """Logs the audio Asset determined by audio data.
 
         Args:
@@ -118,9 +130,9 @@ class CometLogger:
             directly to the cloud.
         step: Optional. Used to associate the audio asset to a specific step.
         """
-        self._experiment.log_audio(audio_data, sample_rate, file_name,
-                                   metadata, overwrite, copy_to_tmp,
-                                   step)
+        self._experiment.log_audio(
+            audio_data, sample_rate, file_name, metadata, overwrite, copy_to_tmp, step
+        )
 
     @_requiresComet
     def log_text(self, text, step=None, metadata=None):
@@ -135,8 +147,9 @@ class CometLogger:
         self._experiment.log_text(text, step, metadata)
 
     @_requiresComet
-    def log_histogram(self, values, name=None, step=None, epoch=None,
-                      metadata=None, **kwargs):
+    def log_histogram(
+        self, values, name=None, step=None, epoch=None, metadata=None, **kwargs
+    ):
         """Logs a histogram of values for a 3D chart as an asset for
            this experiment. Calling this method multiple times with the
            same name and incremented steps will add additional histograms
@@ -151,9 +164,7 @@ class CometLogger:
         metadata: Optional: Used for items like prefix for histogram name.
         kwargs: Optional. Additional keyword arguments for histogram.
         """
-        self._experiment.log_histogram_3d(values, name, step,
-                                          epoch, metadata,
-                                          **kwargs)
+        self._experiment.log_histogram_3d(values, name, step, epoch, metadata, **kwargs)
 
     @_requiresComet
     def log_curve(self, name, x, y, overwrite=False, step=None):
@@ -183,8 +194,15 @@ class CometLogger:
         self._experiment.log_image(image_pil, name, step=step)
 
     @_requiresComet
-    def log_asset(self, file_data, file_name=None, overwrite=False,
-                  copy_to_tmp=True, step=None, metadata=None):
+    def log_asset(
+        self,
+        file_data,
+        file_name=None,
+        overwrite=False,
+        copy_to_tmp=True,
+        step=None,
+        metadata=None,
+    ):
         """Logs the Asset determined by file_data.
 
         Args:
@@ -200,12 +218,14 @@ class CometLogger:
             directly to the cloud.
         step: Optional. Used to associate the asset to a specific step.
         """
-        self._experiment.log_asset(file_data, file_name, overwrite,
-                                   copy_to_tmp, step, metadata)
+        self._experiment.log_asset(
+            file_data, file_name, overwrite, copy_to_tmp, step, metadata
+        )
 
     @_requiresComet
-    def log_asset_data(self, data, name=None, overwrite=False, step=None,
-                       metadata=None, epoch=None):
+    def log_asset_data(
+        self, data, name=None, overwrite=False, step=None, metadata=None, epoch=None
+    ):
         """Logs the data given (str, binary, or JSON).
 
         Args:
@@ -220,15 +240,21 @@ class CometLogger:
         metadata: Optional. Some additional data to attach to the
             asset data. Must be a JSON-encodable dict.
         """
-        self._experiment.log_asset_data(data, name, overwrite, step,
-                                        metadata, epoch)
+        self._experiment.log_asset_data(data, name, overwrite, step, metadata, epoch)
 
     @_requiresComet
-    def log_embedding(self, vectors, labels, image_data=None,
-                      image_preprocess_function=None, image_transparent_color=None,
-                      image_background_color_function=None, title="Comet Embedding",
-                      template_filename=None,
-                      group=None):
+    def log_embedding(
+        self,
+        vectors,
+        labels,
+        image_data=None,
+        image_preprocess_function=None,
+        image_transparent_color=None,
+        image_background_color_function=None,
+        title="Comet Embedding",
+        template_filename=None,
+        group=None,
+    ):
         """Log a multi-dimensional dataset and metadata for viewing
            with Comet's Embedding Projector (experimental).
 
@@ -256,12 +282,18 @@ class CometLogger:
             labels = np.array(labels)
         else:
             labels = labels.cpu().detach().numpy()
-        self._experiment.log_embedding(vectors, labels, image_data,
-                                       image_size, image_preprocess_function,
-                                       image_transparent_color,
-                                       image_background_color_function,
-                                       title, template_filename,
-                                       group)
+        self._experiment.log_embedding(
+            vectors,
+            labels,
+            image_data,
+            image_size,
+            image_preprocess_function,
+            image_transparent_color,
+            image_background_color_function,
+            title,
+            template_filename,
+            group,
+        )
 
     @_requiresComet
     def log_mesh(self, tag, vertices, colors, faces, config_dict, step, walltime):
@@ -278,13 +310,13 @@ class CometLogger:
             seconds after epoch of event
         """
         mesh_json = {}
-        mesh_json['tag'] = tag
-        mesh_json['vertices'] = vertices.tolist()
-        mesh_json['colors'] = colors.tolist()
-        mesh_json['faces'] = faces.tolist()
-        mesh_json['config_dict'] = config_dict
-        mesh_json['walltime'] = walltime
-        mesh_json['asset_type'] = 'mesh'
+        mesh_json["tag"] = tag
+        mesh_json["vertices"] = vertices.tolist()
+        mesh_json["colors"] = colors.tolist()
+        mesh_json["faces"] = faces.tolist()
+        mesh_json["config_dict"] = config_dict
+        mesh_json["walltime"] = walltime
+        mesh_json["asset_type"] = "mesh"
         mesh_json = json.dumps(mesh_json)
         self.log_asset_data(mesh_json, tag, step=step)
 
@@ -298,5 +330,5 @@ class CometLogger:
         step: step value to record
         """
         file_json = kwargs
-        file_json['asset_type'] = asset_type
+        file_json["asset_type"] = asset_type
         self.log_asset_data(file_json, tag, step=step)

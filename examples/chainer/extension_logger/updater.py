@@ -8,9 +8,8 @@ from chainer import Variable
 
 
 class DCGANUpdater(chainer.training.StandardUpdater):
-
     def __init__(self, *args, **kwargs):
-        self.gen, self.dis = kwargs.pop('models')
+        self.gen, self.dis = kwargs.pop("models")
         super(DCGANUpdater, self).__init__(*args, **kwargs)
 
     def loss_dis(self, dis, y_fake, y_real):
@@ -18,21 +17,21 @@ class DCGANUpdater(chainer.training.StandardUpdater):
         L1 = F.sum(F.softplus(-y_real)) / batchsize
         L2 = F.sum(F.softplus(y_fake)) / batchsize
         loss = L1 + L2
-        chainer.report({'loss': loss}, dis)
+        chainer.report({"loss": loss}, dis)
         return loss
 
     def loss_gen(self, gen, y_fake):
         batchsize = len(y_fake)
         loss = F.sum(F.softplus(-y_fake)) / batchsize
-        chainer.report({'loss': loss}, gen)
+        chainer.report({"loss": loss}, gen)
         return loss
 
     def update_core(self):
-        gen_optimizer = self.get_optimizer('gen')
-        dis_optimizer = self.get_optimizer('dis')
+        gen_optimizer = self.get_optimizer("gen")
+        dis_optimizer = self.get_optimizer("dis")
 
-        batch = self.get_iterator('main').next()
-        x_real = Variable(self.converter(batch, self.device)) / 255.
+        batch = self.get_iterator("main").next()
+        x_real = Variable(self.converter(batch, self.device)) / 255.0
         xp = chainer.cuda.get_array_module(x_real.data)
 
         gen, dis = self.gen, self.dis

@@ -14,11 +14,11 @@ class FigureTest(unittest.TestCase):
         writer = SummaryWriter()
 
         figure, axes = plt.figure(), plt.gca()
-        circle1 = plt.Circle((0.2, 0.5), 0.2, color='r')
-        circle2 = plt.Circle((0.8, 0.5), 0.2, color='g')
+        circle1 = plt.Circle((0.2, 0.5), 0.2, color="r")
+        circle2 = plt.Circle((0.8, 0.5), 0.2, color="g")
         axes.add_patch(circle1)
         axes.add_patch(circle2)
-        plt.axis('scaled')
+        plt.axis("scaled")
         plt.tight_layout()
 
         writer.add_figure("add_figure/figure", figure, 0, close=False)

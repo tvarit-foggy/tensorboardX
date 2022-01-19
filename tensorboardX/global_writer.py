@@ -18,9 +18,20 @@ class GlobalSummaryWriter(object):
     The GlobalSummaryWriter and also be used like the ``logging`` module of Python.
     See how ``getSummaryWriter`` is used below.
     """
-    def __init__(self, logdir=None, comment='', purge_step=None, max_queue=10,
-                 flush_secs=120, filename_suffix='', write_to_disk=True, log_dir=None,
-                 coalesce_process=True, **kwargs):
+
+    def __init__(
+        self,
+        logdir=None,
+        comment="",
+        purge_step=None,
+        max_queue=10,
+        flush_secs=120,
+        filename_suffix="",
+        write_to_disk=True,
+        log_dir=None,
+        coalesce_process=True,
+        **kwargs
+    ):
         """
         Initialize a GlobalSummaryWriter. The resulting instance will maintain a monotonically
         increasing ``global_step`` for the the event to be written. So there is no need to pass
@@ -50,9 +61,16 @@ class GlobalSummaryWriter(object):
 
         """
 
-        self.smw = SummaryWriter(logdir=logdir, comment=comment, purge_step=purge_step, max_queue=max_queue,
-                                 flush_secs=flush_secs, filename_suffix=filename_suffix, write_to_disk=write_to_disk,
-                                 log_dir=log_dir)
+        self.smw = SummaryWriter(
+            logdir=logdir,
+            comment=comment,
+            purge_step=purge_step,
+            max_queue=max_queue,
+            flush_secs=flush_secs,
+            filename_suffix=filename_suffix,
+            write_to_disk=write_to_disk,
+            log_dir=log_dir,
+        )
         self.lock = mp.Lock()
         self.scalar_tag_to_step = mp.Manager().dict()
         self.image_tag_to_step = mp.Manager().dict()
@@ -75,7 +93,9 @@ class GlobalSummaryWriter(object):
             else:
                 self.scalar_tag_to_step[tag] = 0
 
-            self.smw.add_scalar(tag, scalar_value, self.scalar_tag_to_step[tag], walltime)
+            self.smw.add_scalar(
+                tag, scalar_value, self.scalar_tag_to_step[tag], walltime
+            )
 
     # def add_histogram(self, tag, values, bins='tensorflow', walltime=None, max_bins=None):
     #     """Add histogram to summary.
@@ -101,7 +121,7 @@ class GlobalSummaryWriter(object):
     #                                walltime=walltime,
     #                                max_bins=max_bins)
 
-    def add_image(self, tag, img_tensor, walltime=None, dataformats='CHW'):
+    def add_image(self, tag, img_tensor, walltime=None, dataformats="CHW"):
         """Add image data to summary.
 
         Note that this requires the ``pillow`` package.
@@ -126,7 +146,13 @@ class GlobalSummaryWriter(object):
             else:
                 self.image_tag_to_step[tag] = 0
 
-            self.smw.add_image(tag, img_tensor, self.image_tag_to_step[tag], walltime=walltime, dataformats=dataformats)
+            self.smw.add_image(
+                tag,
+                img_tensor,
+                self.image_tag_to_step[tag],
+                walltime=walltime,
+                dataformats=dataformats,
+            )
 
     # def add_audio(self, tag, snd_tensor, sample_rate=44100, walltime=None):
     #     """Add audio data to summary.
@@ -163,7 +189,12 @@ class GlobalSummaryWriter(object):
             else:
                 self.text_tag_to_step[tag] = 0
 
-            self.smw.add_text(tag, text_string, global_step=self.text_tag_to_step[tag], walltime=walltime)
+            self.smw.add_text(
+                tag,
+                text_string,
+                global_step=self.text_tag_to_step[tag],
+                walltime=walltime,
+            )
 
     @staticmethod
     def getSummaryWriter():

@@ -11,7 +11,7 @@ import six
 def check_nan(array):
     tmp = np.sum(array)
     if np.isnan(tmp) or np.isinf(tmp):
-        logging.warning('NaN or Inf found in input tensor.')
+        logging.warning("NaN or Inf found in input tensor.")
     return array
 
 
@@ -24,20 +24,22 @@ def make_np(x):
         return check_nan(prepare_caffe2(x))
     if np.isscalar(x):
         return check_nan(np.array([x]))
-    if 'torch' in str(type(x)):
+    if "torch" in str(type(x)):
         return check_nan(prepare_pytorch(x))
-    if 'chainer' in str(type(x)):
+    if "chainer" in str(type(x)):
         return check_nan(prepare_chainer(x))
-    if 'mxnet' in str(type(x)):
+    if "mxnet" in str(type(x)):
         return check_nan(prepare_mxnet(x))
-    if 'jax' in str(type(x)):
+    if "jax" in str(type(x)):
         return check_nan(np.array(x))
     raise NotImplementedError(
-        'Got {}, but expected numpy array or torch tensor.'.format(type(x)))
+        "Got {}, but expected numpy array or torch tensor.".format(type(x))
+    )
 
 
 def prepare_pytorch(x):
     import torch
+
     if isinstance(x, torch.autograd.Variable):
         x = x.data
     x = x.cpu().numpy()
@@ -46,11 +48,13 @@ def prepare_pytorch(x):
 
 def prepare_theano(x):
     import theano
+
     pass
 
 
 def prepare_caffe2(x):
     from caffe2.python import workspace
+
     x = workspace.FetchBlob(x)
     return x
 
@@ -62,5 +66,6 @@ def prepare_mxnet(x):
 
 def prepare_chainer(x):
     import chainer
+
     x = chainer.cuda.to_cpu(x.data)
     return x

@@ -19,7 +19,6 @@ def add_noise(h, sigma=0.2):
 
 
 class Generator(chainer.Chain):
-
     def __init__(self, n_hidden, bottom_width=4, ch=512, wscale=0.02):
         super(Generator, self).__init__()
         self.n_hidden = n_hidden
@@ -28,8 +27,9 @@ class Generator(chainer.Chain):
 
         with self.init_scope():
             w = chainer.initializers.Normal(wscale)
-            self.l0 = L.Linear(self.n_hidden, bottom_width * bottom_width * ch,
-                               initialW=w)
+            self.l0 = L.Linear(
+                self.n_hidden, bottom_width * bottom_width * ch, initialW=w
+            )
             self.dc1 = L.Deconvolution2D(ch, ch // 2, 4, 2, 1, initialW=w)
             self.dc2 = L.Deconvolution2D(ch // 2, ch // 4, 4, 2, 1, initialW=w)
             self.dc3 = L.Deconvolution2D(ch // 4, ch // 8, 4, 2, 1, initialW=w)
@@ -40,12 +40,15 @@ class Generator(chainer.Chain):
             self.bn3 = L.BatchNormalization(ch // 8)
 
     def make_hidden(self, batchsize):
-        return numpy.random.uniform(-1, 1, (batchsize, self.n_hidden, 1, 1))\
-            .astype(numpy.float32)
+        return numpy.random.uniform(-1, 1, (batchsize, self.n_hidden, 1, 1)).astype(
+            numpy.float32
+        )
 
     def __call__(self, z):
-        h = F.reshape(F.relu(self.bn0(self.l0(z))),
-                      (len(z), self.ch, self.bottom_width, self.bottom_width))
+        h = F.reshape(
+            F.relu(self.bn0(self.l0(z))),
+            (len(z), self.ch, self.bottom_width, self.bottom_width),
+        )
         h = F.relu(self.bn1(self.dc1(h)))
         h = F.relu(self.bn2(self.dc2(h)))
         h = F.relu(self.bn3(self.dc3(h)))
@@ -54,7 +57,6 @@ class Generator(chainer.Chain):
 
 
 class Discriminator(chainer.Chain):
-
     def __init__(self, bottom_width=4, ch=512, wscale=0.02):
         w = chainer.initializers.Normal(wscale)
         super(Discriminator, self).__init__()
